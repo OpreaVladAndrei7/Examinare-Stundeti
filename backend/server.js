@@ -10,6 +10,7 @@ const { sequelize, Student, Teacher, Group, Exam } = require("./models");
 const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 
 const app = express();
 app.use(cors());
@@ -24,8 +25,6 @@ app.use(express.json());
     console.error("Unable to connect to the database:", error);
   }
 })();
-
-// Define the Students and Teachers models
 
 //Modifing the password to be crypted in the database for the cases when it is insterted directly
 // Function to hash passwords for students
@@ -215,7 +214,7 @@ app.get("/exams", authenticateToken, async (req, res) => {
             student_id: user.id,
             start_date: { [Op.lte]: now },
             end_date: { [Op.gte]: now },
-            status: { [Op.notIn]: ["ongoing", "invalid", "closed"] },
+            status: { [Op.notIn]: ["ongoing", "invalid"] },
           },
         }
       );
@@ -517,6 +516,52 @@ app.put("/exams/:id/invalidate", authenticateToken, async (req, res) => {
     console.error("Error invalidating exam:", error);
     res.status(500).json({ error: "Failed to invalidate exam." });
   }
+});
+let gdbProcess = null;
+
+app.post("/debug/start", authenticateToken, (req, res) => {
+  const { code } = req.body;
+  const fileName = `temp_${Date.now()}.cpp`;
+  const filePath = path.join(__dirname, fileName);
+  fs.writeFileSync(filePath, code);
+
+  const execCommand = `g++ -g ${filePath} -o ${filePath}.out`;
+  exec(execCommand, (error, stdout, stderr) => {
+    if (error) return res.json({ error: stderr });
+
+    gdbProcess = spawn("gdb", [`${filePath}.out`]);
+    gdbProcess.stdout.setEncoding("utf8");
+
+    gdbProcess.stdout.on("data", (data) => {
+      console.log("GDB stdout:", data);
+    });
+
+    gdbProcess.stderr.on("data", (data) => {
+      console.error("GDB stderr:", data);
+    });
+
+    res.json({ message: "GDB started", file: fileName });
+  });
+});
+
+app.post("/debug/cmd", (req, res) => {
+  const { command } = req.body;
+
+  if (!gdbProcess)
+    return res.status(400).json({ error: "Debugger not started" });
+
+  gdbProcess.stdin.write(`${command}\n`);
+
+  let output = "";
+  const onData = (data) => {
+    output += data;
+    if (data.includes("(gdb)")) {
+      gdbProcess.stdout.off("data", onData);
+      res.json({ output });
+    }
+  };
+
+  gdbProcess.stdout.on("data", onData);
 });
 
 app.post("/compile", authenticateToken, async (req, res) => {

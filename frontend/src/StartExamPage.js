@@ -1,5 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  BsPlayFill,
+  BsBug,
+  BsFlag,
+  BsSkipForward,
+  BsArrowRight,
+  BsFastForward,
+} from "react-icons/bs";
 
 function StartExamPage() {
   const { id } = useParams();
@@ -14,7 +22,8 @@ function StartExamPage() {
   const [examTerminated, setExamTerminated] = useState(false);
   const examSubmittedRef = useRef(false);
   const codeRef = useRef(code);
-
+  const [debugOutput, setDebugOutput] = useState("");
+  const [debugFile, setDebugFile] = useState("");
   const autoSubmitExam = useCallback(async () => {
     if (examSubmittedRef.current) return;
 
@@ -94,120 +103,150 @@ function StartExamPage() {
       });
   }, [id, navigate, autoSubmitExam]);
 
-  useEffect(() => {
-    const addFullscreenListeners = () => {
-      document.addEventListener("fullscreenchange", onFullscreenChange);
-      document.addEventListener("webkitfullscreenchange", onFullscreenChange);
-      document.addEventListener("mozfullscreenchange", onFullscreenChange);
-      document.addEventListener("msfullscreenchange", onFullscreenChange);
-    };
+  // useEffect(() => {
+  //   const addFullscreenListeners = () => {
+  //     document.addEventListener("fullscreenchange", onFullscreenChange);
+  //     document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+  //     document.addEventListener("mozfullscreenchange", onFullscreenChange);
+  //     document.addEventListener("msfullscreenchange", onFullscreenChange);
+  //   };
 
-    const removeFullscreenListeners = () => {
-      document.removeEventListener("fullscreenchange", onFullscreenChange);
-      document.removeEventListener(
-        "webkitfullscreenchange",
-        onFullscreenChange
-      );
-      document.removeEventListener("mozfullscreenchange", onFullscreenChange);
-      document.removeEventListener("msfullscreenchange", onFullscreenChange);
-    };
+  //   const removeFullscreenListeners = () => {
+  //     document.removeEventListener("fullscreenchange", onFullscreenChange);
+  //     document.removeEventListener(
+  //       "webkitfullscreenchange",
+  //       onFullscreenChange
+  //     );
+  //     document.removeEventListener("mozfullscreenchange", onFullscreenChange);
+  //     document.removeEventListener("msfullscreenchange", onFullscreenChange);
+  //   };
 
-    const onFullscreenChange = async () => {
-      if (examTerminated) return;
-      if (
-        !document.fullscreenElement &&
-        !document.webkitFullscreenElement &&
-        !document.mozFullScreenElement &&
-        !document.msFullscreenElement
-      ) {
-        if (examSubmittedRef.current) return;
-        examSubmittedRef.current = true;
-        const token = localStorage.getItem("token");
+  //   const onFullscreenChange = async () => {
+  //     if (examTerminated) return;
+  //     if (
+  //       !document.fullscreenElement &&
+  //       !document.webkitFullscreenElement &&
+  //       !document.mozFullScreenElement &&
+  //       !document.msFullscreenElement
+  //     ) {
+  //       if (examSubmittedRef.current) return;
+  //       examSubmittedRef.current = true;
+  //       const token = localStorage.getItem("token");
 
-        await fetch(`http://localhost:3001/exams/${id}/invalidate`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            console.log("Invalidate response:", data);
-          })
-          .catch((err) => console.error("Eroare la invalidate:", err))
-          .finally(() => {
-            navigate("/main", {
-              state: {
-                toastMessage:
-                  "Ai ieșit din full screen. Examenul va fi anulat.",
-                from: "invalidExam",
-              },
-            });
-          });
-      }
-    };
-    if (exam && exam.status === "ongoing") {
-      //enterFullscreen();
-      addFullscreenListeners();
-    }
+  //       await fetch(`http://localhost:3001/exams/${id}/invalidate`, {
+  //         method: "PUT",
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       })
+  //         .then((res) => res.json())
+  //         .then((data) => {
+  //           console.log("Invalidate response:", data);
+  //         })
+  //         .catch((err) => console.error("Eroare la invalidate:", err))
+  //         .finally(() => {
+  //           navigate("/main", {
+  //             state: {
+  //               toastMessage:
+  //                 "Ai ieșit din full screen. Examenul va fi anulat.",
+  //               from: "invalidExam",
+  //             },
+  //           });
+  //         });
+  //     }
+  //   };
+  //   if (exam && exam.status === "ongoing") {
+  //     //enterFullscreen();
+  //     addFullscreenListeners();
+  //   }
 
-    return () => {
-      removeFullscreenListeners();
-    };
-  }, [exam, navigate, examTerminated, id]);
+  //   return () => {
+  //     removeFullscreenListeners();
+  //   };
+  // }, [exam, navigate, examTerminated, id]);
 
-  useEffect(() => {
-    const handleCheatingAttempt = async () => {
-      if (examTerminated) return;
+  // useEffect(() => {
+  //   const handleCheatingAttempt = async () => {
+  //     if (examTerminated) return;
 
-      setExamTerminated(true);
-      if (examSubmittedRef.current) return;
-      examSubmittedRef.current = true;
+  //     setExamTerminated(true);
+  //     if (examSubmittedRef.current) return;
+  //     examSubmittedRef.current = true;
 
-      const token = localStorage.getItem("token");
+  //     const token = localStorage.getItem("token");
 
-      await fetch(`http://localhost:3001/exams/${id}/invalidate`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Invalidate response:", data);
-        })
-        .catch((err) => console.error("Eroare la invalidate:", err))
-        .finally(() => {
-          navigate("/main", {
-            state: {
-              toastMessage: "Ai părăsit fereastra! Examenul a fost anulat.",
-              from: "invalidExam",
-            },
-          });
-        });
-    };
+  //     await fetch(`http://localhost:3001/exams/${id}/invalidate`, {
+  //       method: "PUT",
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     })
+  //       .then((res) => res.json())
+  //       .then((data) => {
+  //         console.log("Invalidate response:", data);
+  //       })
+  //       .catch((err) => console.error("Eroare la invalidate:", err))
+  //       .finally(() => {
+  //         navigate("/main", {
+  //           state: {
+  //             toastMessage: "Ai părăsit fereastra! Examenul a fost anulat.",
+  //             from: "invalidExam",
+  //           },
+  //         });
+  //       });
+  //   };
 
-    const onBlur = () => {
-      console.log("Blur detected");
-      handleCheatingAttempt();
-    };
+  //   const onBlur = () => {
+  //     console.log("Blur detected");
+  //     handleCheatingAttempt();
+  //   };
 
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        console.log("Visibility change detected");
-        handleCheatingAttempt();
-      }
-    };
+  //   const onVisibilityChange = () => {
+  //     if (document.hidden) {
+  //       console.log("Visibility change detected");
+  //       handleCheatingAttempt();
+  //     }
+  //   };
 
-    window.addEventListener("blur", onBlur);
-    document.addEventListener("visibilitychange", onVisibilityChange);
+  //   window.addEventListener("blur", onBlur);
+  //   document.addEventListener("visibilitychange", onVisibilityChange);
 
-    return () => {
-      window.removeEventListener("blur", onBlur);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, [id, examTerminated, navigate]);
+  //   return () => {
+  //     window.removeEventListener("blur", onBlur);
+  //     document.removeEventListener("visibilitychange", onVisibilityChange);
+  //   };
+  // }, [id, examTerminated, navigate]);
+  const sendDebugCommand = async (cmd) => {
+    const token = localStorage.getItem("token");
 
+    const res = await fetch("http://localhost:3001/debug/cmd", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // ✅ adaugă token-ul
+      },
+      body: JSON.stringify({ command: cmd }),
+    });
+
+    const data = await res.json();
+    setDebugOutput((prev) => prev + "\n" + (data.output || data.error));
+  };
+  const startDebugSession = async () => {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch("http://localhost:3001/debug/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ code }),
+    });
+
+    const data = await res.json();
+    setDebugFile(data.file);
+    setDebugOutput((prev) => prev + "\n" + (data.message || data.error));
+  };
   const formatTime = (totalSeconds) => {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
@@ -238,7 +277,55 @@ function StartExamPage() {
         </div>
 
         <div className="form-group mt-4">
-          <label>Scrie răspunsul (C++):</label>
+          <div className="btn-group mt-4 mb-3" role="group">
+            <button
+              className="btn btn-success"
+              onClick={() => startDebugSession()}
+            >
+              <BsBug className="me-1" />
+              Start Debug
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => sendDebugCommand(`break ${debugFile}:5`)}
+            >
+              <BsFlag className="me-1" />
+              Set Breakpoint
+            </button>
+
+            <button
+              className="btn btn-success"
+              onClick={() => sendDebugCommand("run")}
+            >
+              <BsPlayFill className="me-1" />
+              Run
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => sendDebugCommand("next")}
+            >
+              <BsSkipForward className="me-1" />
+              Next
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => sendDebugCommand("step")}
+            >
+              <BsArrowRight className="me-1" />
+              Step Into
+            </button>
+
+            <button
+              className="btn btn-success"
+              onClick={() => sendDebugCommand("continue")}
+            >
+              <BsFastForward className="me-1" />
+              Continue
+            </button>
+          </div>
           <textarea
             rows="10"
             className="form-control font-monospace"
@@ -249,6 +336,12 @@ function StartExamPage() {
             }}
           ></textarea>
         </div>
+        {debugOutput && (
+          <div className="mt-3">
+            <h5>Debug Output:</h5>
+            <pre className="bg-dark text-light p-3 rounded">{debugOutput}</pre>
+          </div>
+        )}
 
         <button
           className="btn btn-primary mt-3"
