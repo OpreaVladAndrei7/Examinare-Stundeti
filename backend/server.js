@@ -544,6 +544,12 @@ app.post("/debug/start", authenticateToken, (req, res) => {
   });
 });
 
+const cleanGdbOutput = (raw) =>
+  raw
+    .replace(/\(gdb\)\s*/g, "") // elimină prompturile (gdb)
+    .replace(/\x1b\[[0-9;]*m/g, "") // elimină codurile ANSI de culoare
+    .trim();
+
 app.post("/debug/cmd", (req, res) => {
   const { command } = req.body;
 
@@ -557,7 +563,7 @@ app.post("/debug/cmd", (req, res) => {
     output += data;
     if (data.includes("(gdb)")) {
       gdbProcess.stdout.off("data", onData);
-      res.json({ output });
+      res.json({ output: cleanGdbOutput(output) });
     }
   };
 

@@ -1,0 +1,9 @@
+.my-breakpoint-line {
+  background-color: rgba(255, 0, 0, 0.2);
+}
+.my-breakpoint-glyph {
+  background: url("data:image/svg+xml,%3Csvg width='12' height='12' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='5' fill='red' /%3E%3C/svg%3E")
+    no-repeat center center;
+  width: 14px;
+  height: 14px;
+}

@@ -3,12 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   BsPlayFill,
   BsBug,
-  BsFlag,
   BsSkipForward,
   BsArrowRight,
   BsFastForward,
 } from "react-icons/bs";
-
+import Editor from "@monaco-editor/react";
+import "./DebuggerStyles.css";
 function StartExamPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,7 +23,13 @@ function StartExamPage() {
   const examSubmittedRef = useRef(false);
   const codeRef = useRef(code);
   const [debugOutput, setDebugOutput] = useState("");
+  const debugFileRef = useRef("");
   const [debugFile, setDebugFile] = useState("");
+  const debugRef = useRef(null);
+  const editorRef = useRef(null);
+  const [breakpoints, setBreakpoints] = useState([]);
+  const breakpointsRef = useRef([]);
+
   const autoSubmitExam = useCallback(async () => {
     if (examSubmittedRef.current) return;
 
@@ -244,9 +250,20 @@ function StartExamPage() {
     });
 
     const data = await res.json();
+    debugFileRef.current = data.file;
     setDebugFile(data.file);
     setDebugOutput((prev) => prev + "\n" + (data.message || data.error));
   };
+  useEffect(() => {
+    if (debugRef.current) {
+      debugRef.current.scrollTop = debugRef.current.scrollHeight;
+    }
+  }, [debugOutput]);
+
+  useEffect(() => {
+    breakpointsRef.current = breakpoints;
+  }, [breakpoints]);
+
   const formatTime = (totalSeconds) => {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
@@ -287,14 +304,6 @@ function StartExamPage() {
             </button>
 
             <button
-              className="btn btn-secondary"
-              onClick={() => sendDebugCommand(`break ${debugFile}:5`)}
-            >
-              <BsFlag className="me-1" />
-              Set Breakpoint
-            </button>
-
-            <button
               className="btn btn-success"
               onClick={() => sendDebugCommand("run")}
             >
@@ -326,20 +335,94 @@ function StartExamPage() {
               Continue
             </button>
           </div>
-          <textarea
-            rows="10"
-            className="form-control font-monospace"
+          <Editor
+            height="400px"
+            defaultLanguage="cpp"
             value={code}
-            onChange={(e) => {
-              setCode(e.target.value);
-              codeRef.current = e.target.value; // 👈 Actualizăm referința
+            onChange={(value) => {
+              setCode(value);
+              codeRef.current = value;
             }}
-          ></textarea>
+            onMount={(editor, monaco) => {
+              editorRef.current = editor;
+
+              editor.onMouseDown((e) => {
+                const debugFile = debugFileRef.current;
+                if (debugFile) {
+                  if (
+                    e.target.type ===
+                    monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN
+                  ) {
+                    const line = e.target.position.lineNumber;
+                    const editorInstance = editorRef.current;
+                    console.log(line);
+                    // Verificăm dacă deja există un breakpoint pe această linie
+                    const existing = breakpointsRef.current.find(
+                      (bp) => bp.range.startLineNumber === line
+                    );
+
+                    if (existing) {
+                      // 🔴 Ștergem decorarea existentă
+                      editorInstance.deltaDecorations([existing.id], []);
+                      setBreakpoints((prev) =>
+                        prev.filter((bp) => bp.line !== line)
+                      );
+                    } else {
+                      // ✅ Adăugăm un nou breakpoint
+                      const newDecoration = {
+                        range: new monaco.Range(line, 1, line, 1),
+                        options: {
+                          isWholeLine: true,
+                          className: "my-breakpoint-line",
+                          glyphMarginClassName: "my-breakpoint-glyph",
+                        },
+                      };
+
+                      const newId = editorInstance.deltaDecorations(
+                        [],
+                        [newDecoration]
+                      )[0];
+
+                      const newBreakpoint = {
+                        id: newId,
+                        line: line, // Salvăm linia direct, mai sigur decât range comparison
+                        ...newDecoration,
+                      };
+
+                      setBreakpoints((prev) => {
+                        const updated = [...prev, newBreakpoint];
+                        breakpointsRef.current = updated;
+                        return updated;
+                      });
+
+                      sendDebugCommand(`break ${debugFile}:${line}`);
+                      setDebugOutput(
+                        (prev) => prev + `\nBreakpoint set at line ${line}`
+                      );
+                    }
+                  }
+                }
+              });
+            }}
+            theme="vs-dark"
+            options={{
+              fontSize: 14,
+              minimap: { enabled: false },
+              glyphMargin: true, // ✅ activează coloana pentru breakpoint
+              scrollBeyondLastLine: false,
+            }}
+          />
         </div>
         {debugOutput && (
           <div className="mt-3">
             <h5>Debug Output:</h5>
-            <pre className="bg-dark text-light p-3 rounded">{debugOutput}</pre>
+            <pre
+              ref={debugRef}
+              className="bg-dark text-light p-3 rounded"
+              style={{ maxHeight: "300px", overflowY: "auto" }}
+            >
+              {debugOutput}
+            </pre>
           </div>
         )}
 
