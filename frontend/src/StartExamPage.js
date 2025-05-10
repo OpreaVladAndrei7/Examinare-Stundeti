@@ -29,7 +29,7 @@ function StartExamPage() {
   const editorRef = useRef(null);
   const [breakpoints, setBreakpoints] = useState([]);
   const breakpointsRef = useRef([]);
-
+  const [variables, setVariables] = useState("");
   const autoSubmitExam = useCallback(async () => {
     if (examSubmittedRef.current) return;
 
@@ -254,6 +254,29 @@ function StartExamPage() {
     setDebugFile(data.file);
     setDebugOutput((prev) => prev + "\n" + (data.message || data.error));
   };
+
+  const fetchVariables = async () => {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch("http://localhost:3001/debug/cmd", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ command: "info locals" }), // sau "info variables"
+    });
+
+    const data = await res.json();
+    return data.output || data.error;
+  };
+
+  const stepCommand = async (cmd) => {
+    await sendDebugCommand(cmd);
+    const vars = await fetchVariables();
+    setVariables(vars);
+  };
+
   useEffect(() => {
     if (debugRef.current) {
       debugRef.current.scrollTop = debugRef.current.scrollHeight;
@@ -313,7 +336,7 @@ function StartExamPage() {
 
             <button
               className="btn btn-secondary"
-              onClick={() => sendDebugCommand("next")}
+              onClick={() => stepCommand("next")}
             >
               <BsSkipForward className="me-1" />
               Next
@@ -321,7 +344,7 @@ function StartExamPage() {
 
             <button
               className="btn btn-secondary"
-              onClick={() => sendDebugCommand("step")}
+              onClick={() => stepCommand("step")}
             >
               <BsArrowRight className="me-1" />
               Step Into
@@ -329,7 +352,7 @@ function StartExamPage() {
 
             <button
               className="btn btn-success"
-              onClick={() => sendDebugCommand("continue")}
+              onClick={() => stepCommand("continue")}
             >
               <BsFastForward className="me-1" />
               Continue
@@ -425,7 +448,12 @@ function StartExamPage() {
             </pre>
           </div>
         )}
-
+        {variables && (
+          <div className="mt-3">
+            <h5>Variabile:</h5>
+            <pre className="bg-dark text-warning p-3 rounded">{variables}</pre>
+          </div>
+        )}
         <button
           className="btn btn-primary mt-3"
           onClick={async () => {
