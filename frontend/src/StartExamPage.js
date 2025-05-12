@@ -3,7 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   BsPlayFill,
   BsBug,
+  BsCaretRightSquareFill,
   BsSkipForward,
+  BsFillTrashFill,
   BsArrowRight,
   BsFastForward,
 } from "react-icons/bs";
@@ -24,16 +26,17 @@ function StartExamPage() {
   const codeRef = useRef(code);
   const [debugOutput, setDebugOutput] = useState("");
   const debugFileRef = useRef("");
-  const [debugFile, setDebugFile] = useState("");
   const debugRef = useRef(null);
   const editorRef = useRef(null);
   const [breakpoints, setBreakpoints] = useState([]);
   const breakpointsRef = useRef([]);
   const [variables, setVariables] = useState("");
+  const [showExitModal, setShowExitModal] = useState(false);
+
   const autoSubmitExam = useCallback(async () => {
     if (examSubmittedRef.current) return;
 
-    examSubmittedRef.current = true; // ✅ Marchează examenul ca trimis
+    examSubmittedRef.current = true;
     const token = localStorage.getItem("token");
 
     try {
@@ -109,119 +112,97 @@ function StartExamPage() {
       });
   }, [id, navigate, autoSubmitExam]);
 
-  // useEffect(() => {
-  //   const addFullscreenListeners = () => {
-  //     document.addEventListener("fullscreenchange", onFullscreenChange);
-  //     document.addEventListener("webkitfullscreenchange", onFullscreenChange);
-  //     document.addEventListener("mozfullscreenchange", onFullscreenChange);
-  //     document.addEventListener("msfullscreenchange", onFullscreenChange);
-  //   };
+  useEffect(() => {
+    const addFullscreenListeners = () => {
+      document.addEventListener("fullscreenchange", onFullscreenChange);
+      document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+      document.addEventListener("mozfullscreenchange", onFullscreenChange);
+      document.addEventListener("msfullscreenchange", onFullscreenChange);
+    };
 
-  //   const removeFullscreenListeners = () => {
-  //     document.removeEventListener("fullscreenchange", onFullscreenChange);
-  //     document.removeEventListener(
-  //       "webkitfullscreenchange",
-  //       onFullscreenChange
-  //     );
-  //     document.removeEventListener("mozfullscreenchange", onFullscreenChange);
-  //     document.removeEventListener("msfullscreenchange", onFullscreenChange);
-  //   };
+    const removeFullscreenListeners = () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        onFullscreenChange
+      );
+      document.removeEventListener("mozfullscreenchange", onFullscreenChange);
+      document.removeEventListener("msfullscreenchange", onFullscreenChange);
+    };
 
-  //   const onFullscreenChange = async () => {
-  //     if (examTerminated) return;
-  //     if (
-  //       !document.fullscreenElement &&
-  //       !document.webkitFullscreenElement &&
-  //       !document.mozFullScreenElement &&
-  //       !document.msFullscreenElement
-  //     ) {
-  //       if (examSubmittedRef.current) return;
-  //       examSubmittedRef.current = true;
-  //       const token = localStorage.getItem("token");
+    const onFullscreenChange = () => {
+      const isFullscreen =
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement;
 
-  //       await fetch(`http://localhost:3001/exams/${id}/invalidate`, {
-  //         method: "PUT",
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       })
-  //         .then((res) => res.json())
-  //         .then((data) => {
-  //           console.log("Invalidate response:", data);
-  //         })
-  //         .catch((err) => console.error("Eroare la invalidate:", err))
-  //         .finally(() => {
-  //           navigate("/main", {
-  //             state: {
-  //               toastMessage:
-  //                 "Ai ieșit din full screen. Examenul va fi anulat.",
-  //               from: "invalidExam",
-  //             },
-  //           });
-  //         });
-  //     }
-  //   };
-  //   if (exam && exam.status === "ongoing") {
-  //     //enterFullscreen();
-  //     addFullscreenListeners();
-  //   }
+      if (!isFullscreen && !examSubmittedRef.current && !examTerminated) {
+        setShowExitModal(true);
+      }
+    };
+    if (exam && exam.status === "ongoing") {
+      //enterFullscreen();
+      addFullscreenListeners();
+    }
 
-  //   return () => {
-  //     removeFullscreenListeners();
-  //   };
-  // }, [exam, navigate, examTerminated, id]);
+    return () => {
+      removeFullscreenListeners();
+    };
+  }, [exam, navigate, examTerminated, id]);
 
-  // useEffect(() => {
-  //   const handleCheatingAttempt = async () => {
-  //     if (examTerminated) return;
+  useEffect(() => {
+    const handleCheatingAttempt = async () => {
+      if (examTerminated) return;
 
-  //     setExamTerminated(true);
-  //     if (examSubmittedRef.current) return;
-  //     examSubmittedRef.current = true;
+      setExamTerminated(true);
+      if (examSubmittedRef.current) return;
+      examSubmittedRef.current = true;
 
-  //     const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
-  //     await fetch(`http://localhost:3001/exams/${id}/invalidate`, {
-  //       method: "PUT",
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     })
-  //       .then((res) => res.json())
-  //       .then((data) => {
-  //         console.log("Invalidate response:", data);
-  //       })
-  //       .catch((err) => console.error("Eroare la invalidate:", err))
-  //       .finally(() => {
-  //         navigate("/main", {
-  //           state: {
-  //             toastMessage: "Ai părăsit fereastra! Examenul a fost anulat.",
-  //             from: "invalidExam",
-  //           },
-  //         });
-  //       });
-  //   };
+      await fetch(`http://localhost:3001/exams/${id}/invalidate`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Invalidate response:", data);
+        })
+        .catch((err) => console.error("Eroare la invalidate:", err))
+        .finally(() => {
+          navigate("/main", {
+            state: {
+              toastMessage: "Ai părăsit fereastra! Examenul a fost anulat.",
+              from: "invalidExam",
+            },
+          });
+        });
+    };
 
-  //   const onBlur = () => {
-  //     console.log("Blur detected");
-  //     handleCheatingAttempt();
-  //   };
+    const onBlur = () => {
+      console.log("Blur detected");
+      handleCheatingAttempt();
+    };
 
-  //   const onVisibilityChange = () => {
-  //     if (document.hidden) {
-  //       console.log("Visibility change detected");
-  //       handleCheatingAttempt();
-  //     }
-  //   };
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        console.log("Visibility change detected");
+        handleCheatingAttempt();
+      }
+    };
 
-  //   window.addEventListener("blur", onBlur);
-  //   document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
-  //   return () => {
-  //     window.removeEventListener("blur", onBlur);
-  //     document.removeEventListener("visibilitychange", onVisibilityChange);
-  //   };
-  // }, [id, examTerminated, navigate]);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [id, examTerminated, navigate]);
+
   const sendDebugCommand = async (cmd) => {
     const token = localStorage.getItem("token");
 
@@ -229,7 +210,7 @@ function StartExamPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // ✅ adaugă token-ul
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ command: cmd }),
     });
@@ -251,7 +232,6 @@ function StartExamPage() {
 
     const data = await res.json();
     debugFileRef.current = data.file;
-    setDebugFile(data.file);
     setDebugOutput((prev) => prev + "\n" + (data.message || data.error));
   };
 
@@ -264,7 +244,7 @@ function StartExamPage() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ command: "info locals" }), // sau "info variables"
+      body: JSON.stringify({ command: "info locals" }),
     });
 
     const data = await res.json();
@@ -316,179 +296,249 @@ function StartExamPage() {
           <p className="bg-light border rounded p-3">{exam.requirement}</p>
         </div>
 
-        <div className="form-group mt-4">
-          <div className="btn-group mt-4 mb-3" role="group">
-            <button
-              className="btn btn-success"
-              onClick={() => startDebugSession()}
-            >
-              <BsBug className="me-1" />
-              Start Debug
-            </button>
-
-            <button
-              className="btn btn-success"
-              onClick={() => sendDebugCommand("run")}
-            >
-              <BsPlayFill className="me-1" />
-              Run
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => stepCommand("next")}
-            >
-              <BsSkipForward className="me-1" />
-              Next
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => stepCommand("step")}
-            >
-              <BsArrowRight className="me-1" />
-              Step Into
-            </button>
-
-            <button
-              className="btn btn-success"
-              onClick={() => stepCommand("continue")}
-            >
-              <BsFastForward className="me-1" />
-              Continue
-            </button>
-          </div>
-          <Editor
-            height="400px"
-            defaultLanguage="cpp"
-            value={code}
-            onChange={(value) => {
-              setCode(value);
-              codeRef.current = value;
+        <div
+          className="form-group mt-4 d-flex gap-3"
+          style={{ flexWrap: "wrap" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              width: "100%",
             }}
-            onMount={(editor, monaco) => {
-              editorRef.current = editor;
+          >
+            <div className="btn-group mt-4 mb-3" role="group">
+              <button
+                style={{ border: "3px solid green", color: "green" }}
+                className="btn btn-white"
+                onClick={async () => {
+                  const token = localStorage.getItem("token");
+                  setLoading(true);
 
-              editor.onMouseDown((e) => {
-                const debugFile = debugFileRef.current;
-                if (debugFile) {
-                  if (
-                    e.target.type ===
-                    monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN
-                  ) {
-                    const line = e.target.position.lineNumber;
-                    const editorInstance = editorRef.current;
-                    console.log(line);
-                    // Verificăm dacă deja există un breakpoint pe această linie
-                    const existing = breakpointsRef.current.find(
-                      (bp) => bp.range.startLineNumber === line
-                    );
+                  const response = await fetch(
+                    "http://localhost:3001/compile",
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ code }),
+                    }
+                  );
+                  const data = await response.json();
+                  setOutput(data.output || data.error);
+                  setLoading(false);
+                }}
+              >
+                <BsCaretRightSquareFill
+                  className="me-1"
+                  style={{ marginBottom: "3px" }}
+                />
+                Compile
+              </button>
+              <button
+                className="btn btn-success"
+                onClick={() => startDebugSession()}
+              >
+                <BsBug className="me-1" style={{ marginBottom: "3px" }} />
+                Start Debug
+              </button>
 
-                    if (existing) {
-                      // 🔴 Ștergem decorarea existentă
-                      editorInstance.deltaDecorations([existing.id], []);
-                      setBreakpoints((prev) =>
-                        prev.filter((bp) => bp.line !== line)
+              <button
+                className="btn btn-success"
+                onClick={() => sendDebugCommand("run")}
+              >
+                <BsPlayFill className="me-1" style={{ marginBottom: "3px" }} />
+                Run
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => stepCommand("next")}
+              >
+                <BsSkipForward
+                  className="me-1"
+                  style={{ marginBottom: "3px" }}
+                />
+                Next
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => stepCommand("step")}
+              >
+                <BsArrowRight
+                  className="me-1"
+                  style={{ marginBottom: "3px" }}
+                />
+                Step Into
+              </button>
+
+              <button
+                className="btn btn-success"
+                onClick={() => stepCommand("continue")}
+              >
+                <BsFastForward
+                  className="me-1"
+                  style={{ marginBottom: "3px" }}
+                />
+                Continue
+              </button>
+            </div>
+            <div
+              className="btn-group mt-4 mb-3"
+              role="group"
+              style={{ float: "right" }}
+            >
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  const token = localStorage.getItem("token");
+                  const file = debugFileRef.current;
+
+                  if (file) {
+                    await fetch("http://localhost:3001/debug/clear", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ file }),
+                    });
+                  }
+
+                  setDebugOutput("");
+                  setVariables("");
+                  setOutput("");
+                  debugFileRef.current = "";
+                }}
+              >
+                <BsFillTrashFill
+                  className="me-1"
+                  style={{ marginBottom: "3px" }}
+                />
+                Clear Output
+              </button>
+            </div>
+          </div>
+          <div style={{ flex: "1 1 60%", minWidth: "300px" }}>
+            <Editor
+              height="400px"
+              defaultLanguage="cpp"
+              value={code}
+              onChange={(value) => {
+                setCode(value);
+                codeRef.current = value;
+              }}
+              onMount={(editor, monaco) => {
+                editorRef.current = editor;
+
+                editor.onMouseDown((e) => {
+                  const debugFile = debugFileRef.current;
+                  if (debugFile) {
+                    if (
+                      e.target.type ===
+                      monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN
+                    ) {
+                      const line = e.target.position.lineNumber;
+                      const editorInstance = editorRef.current;
+                      console.log(line);
+                      const existing = breakpointsRef.current.find(
+                        (bp) => bp.range.startLineNumber === line
                       );
-                    } else {
-                      // ✅ Adăugăm un nou breakpoint
-                      const newDecoration = {
-                        range: new monaco.Range(line, 1, line, 1),
-                        options: {
-                          isWholeLine: true,
-                          className: "my-breakpoint-line",
-                          glyphMarginClassName: "my-breakpoint-glyph",
-                        },
-                      };
 
-                      const newId = editorInstance.deltaDecorations(
-                        [],
-                        [newDecoration]
-                      )[0];
+                      if (existing) {
+                        editorInstance.deltaDecorations([existing.id], []);
+                        setBreakpoints((prev) =>
+                          prev.filter((bp) => bp.line !== line)
+                        );
+                      } else {
+                        const newDecoration = {
+                          range: new monaco.Range(line, 1, line, 1),
+                          options: {
+                            isWholeLine: true,
+                            className: "my-breakpoint-line",
+                            glyphMarginClassName: "my-breakpoint-glyph",
+                          },
+                        };
 
-                      const newBreakpoint = {
-                        id: newId,
-                        line: line, // Salvăm linia direct, mai sigur decât range comparison
-                        ...newDecoration,
-                      };
+                        const newId = editorInstance.deltaDecorations(
+                          [],
+                          [newDecoration]
+                        )[0];
 
-                      setBreakpoints((prev) => {
-                        const updated = [...prev, newBreakpoint];
-                        breakpointsRef.current = updated;
-                        return updated;
-                      });
+                        const newBreakpoint = {
+                          id: newId,
+                          line: line,
+                          ...newDecoration,
+                        };
 
-                      sendDebugCommand(`break ${debugFile}:${line}`);
-                      setDebugOutput(
-                        (prev) => prev + `\nBreakpoint set at line ${line}`
-                      );
+                        setBreakpoints((prev) => {
+                          const updated = [...prev, newBreakpoint];
+                          breakpointsRef.current = updated;
+                          return updated;
+                        });
+
+                        sendDebugCommand(`break ${debugFile}:${line}`);
+                        setDebugOutput(
+                          (prev) => prev + `\nBreakpoint set at line ${line}`
+                        );
+                      }
                     }
                   }
-                }
-              });
-            }}
-            theme="vs-dark"
-            options={{
-              fontSize: 14,
-              minimap: { enabled: false },
-              glyphMargin: true, // ✅ activează coloana pentru breakpoint
-              scrollBeyondLastLine: false,
-            }}
-          />
-        </div>
-        {debugOutput && (
-          <div className="mt-3">
-            <h5>Debug Output:</h5>
-            <pre
-              ref={debugRef}
-              className="bg-dark text-light p-3 rounded"
-              style={{ maxHeight: "300px", overflowY: "auto" }}
-            >
-              {debugOutput}
-            </pre>
+                });
+              }}
+              theme="vs-dark"
+              options={{
+                fontSize: 14,
+                minimap: { enabled: false },
+                glyphMargin: true,
+                scrollBeyondLastLine: false,
+              }}
+            />
           </div>
-        )}
-        {variables && (
-          <div className="mt-3">
-            <h5>Variabile:</h5>
-            <pre className="bg-dark text-warning p-3 rounded">{variables}</pre>
-          </div>
-        )}
-        <button
-          className="btn btn-primary mt-3"
-          onClick={async () => {
-            const token = localStorage.getItem("token");
-            setLoading(true);
-
-            const response = await fetch("http://localhost:3001/compile", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ code }),
-            });
-            const data = await response.json();
-            setOutput(data.output || data.error);
-            setLoading(false);
-          }}
-        >
-          Compilează
-        </button>
-        {loading && (
-          <div className="text-center mt-3">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Se compilează...</span>
+          <div style={{ flex: "1 1 35%", minWidth: "280px" }}>
+            <div className="mb-3">
+              <h5>Debug Output:</h5>
+              <pre
+                ref={debugRef}
+                className="bg-dark text-light p-3 rounded"
+                style={{ maxHeight: "200px", overflowY: "auto" }}
+              >
+                {debugOutput}
+              </pre>
             </div>
-            <p className="mt-2">Se compilează codul...</p>
+
+            <div className="mb-3">
+              <h5>Variabile:</h5>
+              <pre
+                className="bg-dark text-warning p-3 rounded"
+                style={{ maxHeight: "200px", overflowY: "auto" }}
+              >
+                {variables}
+              </pre>
+            </div>
+
+            <div className="mb-3">
+              <h5>Rezultat Compilare:</h5>
+              <pre
+                className="bg-dark text-light p-3 rounded"
+                style={{ maxHeight: "150px", overflowY: "auto" }}
+              >
+                {output}
+              </pre>
+            </div>
+            {loading && (
+              <div className="text-center mt-3">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Se compilează...</span>
+                </div>
+                <p className="mt-2">Se compilează codul...</p>
+              </div>
+            )}
           </div>
-        )}
-        {output && (
-          <div className="mt-3">
-            <h5>Rezultat:</h5>
-            <pre className="bg-dark text-light p-3 rounded">{output}</pre>
-          </div>
-        )}
+        </div>
         <button
           className="btn btn-success mt-3"
           onClick={async () => {
@@ -510,7 +560,7 @@ function StartExamPage() {
               if (response.ok) {
                 setExamTerminated(true);
                 examSubmittedRef.current = true;
-                // 👉 Ieșim din fullscreen
+                // Ieșim din fullscreen
                 if (document.exitFullscreen) {
                   await document.exitFullscreen();
                 }
@@ -539,6 +589,73 @@ function StartExamPage() {
           Trimite Examen
         </button>
       </div>
+      {showExitModal && (
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirmare ieșire fullscreen</h5>
+              </div>
+              <div className="modal-body">
+                <p>
+                  Dacă ieși din modul fullscreen, examenul va fi anulat. Ești
+                  sigur că vrei să continui?
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={async () => {
+                    // Reintră în fullscreen
+                    setShowExitModal(false);
+                    const elem = document.documentElement;
+                    if (elem.requestFullscreen) await elem.requestFullscreen();
+                    else if (elem.webkitRequestFullscreen)
+                      await elem.webkitRequestFullscreen();
+                    else if (elem.mozRequestFullScreen)
+                      await elem.mozRequestFullScreen();
+                    else if (elem.msRequestFullscreen)
+                      await elem.msRequestFullscreen();
+                  }}
+                >
+                  Anulează
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={async () => {
+                    setShowExitModal(false);
+                    if (examSubmittedRef.current) return;
+                    examSubmittedRef.current = true;
+                    const token = localStorage.getItem("token");
+
+                    await fetch(
+                      `http://localhost:3001/exams/${id}/invalidate`,
+                      {
+                        method: "PUT",
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    ).catch(console.error);
+
+                    navigate("/main", {
+                      state: {
+                        toastMessage:
+                          "Ai ieșit din fullscreen. Examenul a fost anulat.",
+                        from: "invalidExam",
+                      },
+                    });
+                  }}
+                >
+                  Confirmă ieșirea
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

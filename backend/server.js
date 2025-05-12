@@ -550,24 +550,55 @@ const cleanGdbOutput = (raw) =>
     .replace(/\x1b\[[0-9;]*m/g, "") // elimină codurile ANSI de culoare
     .trim();
 
-app.post("/debug/cmd", (req, res) => {
+app.post("/debug/cmd", async (req, res) => {
   const { command } = req.body;
 
-  if (!gdbProcess)
+  if (!gdbProcess) {
     return res.status(400).json({ error: "Debugger not started" });
+  }
 
-  gdbProcess.stdin.write(`${command}\n`);
+  const sendCommand = (cmd) => {
+    return new Promise((resolve) => {
+      let buffer = "";
 
-  let output = "";
-  const onData = (data) => {
-    output += data;
-    if (data.includes("(gdb)")) {
-      gdbProcess.stdout.off("data", onData);
-      res.json({ output: cleanGdbOutput(output) });
-    }
+      const onData = (data) => {
+        buffer += data;
+        if (data.includes("(gdb)")) {
+          gdbProcess.stdout.off("data", onData);
+          resolve(cleanGdbOutput(buffer));
+        }
+      };
+
+      gdbProcess.stdout.on("data", onData);
+      gdbProcess.stdin.write(`${cmd}\n`);
+    });
   };
 
-  gdbProcess.stdout.on("data", onData);
+  const mainOutput = await sendCommand(command);
+
+  let varsOutput = "";
+  if (["next", "step", "continue", "run"].some((c) => command.includes(c))) {
+    const rawLocals = await sendCommand("info locals");
+
+    const variables = rawLocals
+      .split("\n")
+      .filter((line) => line.includes(" = "))
+      .map((line) => line.split(" = ")[0].trim());
+
+    const detailed = [];
+
+    for (const variable of variables) {
+      const detail = await sendCommand(`print ${variable}`);
+      detailed.push(`${variable} = ${detail}`);
+    }
+
+    varsOutput = detailed.join("\n");
+  }
+
+  res.json({
+    output: mainOutput,
+    variables: varsOutput,
+  });
 });
 
 app.post("/compile", authenticateToken, async (req, res) => {
@@ -594,6 +625,21 @@ app.post("/compile", authenticateToken, async (req, res) => {
 
     res.json({ output: stdout });
   });
+});
+app.post("/debug/clear", authenticateToken, (req, res) => {
+  const { file } = req.body;
+
+  if (!file) return res.status(400).json({ error: "No file specified" });
+
+  try {
+    const base = path.join(__dirname, file);
+    if (fs.existsSync(base)) fs.unlinkSync(base);
+    if (fs.existsSync(`${base}.out`)) fs.unlinkSync(`${base}.out`);
+    res.json({ message: "Files cleared" });
+  } catch (err) {
+    console.error("Error clearing debug files:", err);
+    res.status(500).json({ error: "Failed to clear debug files" });
+  }
 });
 
 // Start the server
