@@ -41,16 +41,12 @@ function MainPage() {
       location.state.toastMessage
     ) {
       toast.success(location.state.toastMessage);
-
-      // Clear the state after showing toast (optional but clean)
       navigate(location.pathname, { replace: true });
     } else if (
       location.state?.from === "addExam" &&
       location.state.toastMessage
     ) {
       toast.success(location.state.toastMessage);
-
-      // Clear the state after showing toast (optional but clean)
       navigate(location.pathname, { replace: true });
     } else if (
       (location.state?.from === "invalidExam" ||
@@ -58,8 +54,6 @@ function MainPage() {
       location.state.toastMessage
     ) {
       toast.error(location.state.toastMessage);
-
-      // Clear the state after showing toast (optional but clean)
       navigate(location.pathname, { replace: true });
     } else if (
       (location.state?.from === "expiredExam" ||
@@ -67,8 +61,6 @@ function MainPage() {
       location.state.toastMessage
     ) {
       toast.success(location.state.toastMessage);
-      window.location.reload();
-      // Clear the state after showing toast (optional but clean)
       navigate(location.pathname, { replace: true });
     }
   }, [location, navigate]);
@@ -131,7 +123,13 @@ function MainPage() {
                       {exam.status === "ongoing" ? (
                         <button
                           className="btn btn-success btn-sm"
-                          onClick={() => {
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(""); // 🧹 curăță clipboard-ul
+                            } catch (err) {
+                              console.warn("Clipboard write failed:", err);
+                            }
+
                             enterFullscreen();
                             navigate(`/start-exam/${exam.id}`);
                           }}

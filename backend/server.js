@@ -166,7 +166,7 @@ app.get("/exams", authenticateToken, async (req, res) => {
             teacher_id: user.id,
             start_date: { [Op.lte]: now },
             end_date: { [Op.gte]: now },
-            status: { [Op.notIn]: ["ongoing", "invalid"] },
+            status: { [Op.notIn]: ["ongoing", "invalid", "finished"] },
           },
         }
       );
@@ -214,7 +214,7 @@ app.get("/exams", authenticateToken, async (req, res) => {
             student_id: user.id,
             start_date: { [Op.lte]: now },
             end_date: { [Op.gte]: now },
-            status: { [Op.notIn]: ["ongoing", "invalid"] },
+            status: { [Op.notIn]: ["ongoing", "invalid", "finished"] },
           },
         }
       );
@@ -493,7 +493,7 @@ app.put("/exams/:id/submit", authenticateToken, async (req, res) => {
     }
 
     exam.response = response;
-    exam.status = "closed";
+    exam.status = "finished";
     await exam.save();
 
     res.json({ message: "Răspunsul a fost salvat cu succes!" });
@@ -517,6 +517,21 @@ app.put("/exams/:id/invalidate", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Failed to invalidate exam." });
   }
 });
+
+app.delete("/exams", authenticateToken, async (req, res) => {
+  if (req.user.role !== "teacher") {
+    return res.status(403).json({ error: "Access denied" });
+  }
+
+  try {
+    await Exam.destroy({ where: { teacher_id: req.user.id } });
+    res.json({ message: "Toate examenele au fost șterse." });
+  } catch (err) {
+    console.error("Eroare la ștergerea examenelor:", err);
+    res.status(500).json({ error: "Eroare la ștergerea examenelor." });
+  }
+});
+
 let gdbProcess = null;
 
 app.post("/debug/start", authenticateToken, (req, res) => {

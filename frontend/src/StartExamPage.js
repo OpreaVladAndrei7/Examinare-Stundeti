@@ -32,6 +32,8 @@ function StartExamPage() {
   const breakpointsRef = useRef([]);
   const [variables, setVariables] = useState("");
   const [showExitModal, setShowExitModal] = useState(false);
+  const [exitTimeoutId, setExitTimeoutId] = useState(null);
+  const [exitCountdown, setExitCountdown] = useState(5);
 
   const autoSubmitExam = useCallback(async () => {
     if (examSubmittedRef.current) return;
@@ -139,6 +141,36 @@ function StartExamPage() {
 
       if (!isFullscreen && !examSubmittedRef.current && !examTerminated) {
         setShowExitModal(true);
+        setExitCountdown(5);
+
+        const intervalId = setInterval(() => {
+          setExitCountdown((prev) => {
+            if (prev === 1) {
+              clearInterval(intervalId);
+              setExitTimeoutId(null);
+              if (!examSubmittedRef.current) {
+                examSubmittedRef.current = true;
+                const token = localStorage.getItem("token");
+                fetch(`http://localhost:3001/exams/${id}/invalidate`, {
+                  method: "PUT",
+                  headers: { Authorization: `Bearer ${token}` },
+                }).finally(() => {
+                  navigate("/main", {
+                    state: {
+                      toastMessage:
+                        "Nu ai răspuns în timp. Examenul a fost anulat.",
+                      from: "invalidExam",
+                    },
+                  });
+                });
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
+        setExitTimeoutId(intervalId);
       }
     };
     if (exam && exam.status === "ongoing") {
@@ -599,6 +631,9 @@ function StartExamPage() {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Confirmare ieșire fullscreen</h5>
+                <p className="text-danger text-center fw-bold fs-5">
+                  {exitCountdown} secunde rămase pentru confirmare
+                </p>
               </div>
               <div className="modal-body">
                 <p>
@@ -606,27 +641,19 @@ function StartExamPage() {
                   sigur că vrei să continui?
                 </p>
               </div>
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={async () => {
-                    // Reintră în fullscreen
-                    setShowExitModal(false);
-                    const elem = document.documentElement;
-                    if (elem.requestFullscreen) await elem.requestFullscreen();
-                    else if (elem.webkitRequestFullscreen)
-                      await elem.webkitRequestFullscreen();
-                    else if (elem.mozRequestFullScreen)
-                      await elem.mozRequestFullScreen();
-                    else if (elem.msRequestFullscreen)
-                      await elem.msRequestFullscreen();
-                  }}
-                >
-                  Anulează
-                </button>
+              <div
+                className="modal-footer"
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
                 <button
                   className="btn btn-danger"
+                  style={{ float: "left" }}
                   onClick={async () => {
+                    if (exitTimeoutId) {
+                      clearInterval(exitTimeoutId);
+                      setExitTimeoutId(null);
+                      setExitCountdown(5);
+                    }
                     setShowExitModal(false);
                     if (examSubmittedRef.current) return;
                     examSubmittedRef.current = true;
@@ -650,6 +677,28 @@ function StartExamPage() {
                   }}
                 >
                   Confirmă ieșirea
+                </button>
+                <button
+                  className="btn btn-success"
+                  style={{ float: "right" }}
+                  onClick={async () => {
+                    if (exitTimeoutId) {
+                      clearInterval(exitTimeoutId);
+                      setExitTimeoutId(null);
+                      setExitCountdown(5);
+                    }
+                    setShowExitModal(false);
+                    const elem = document.documentElement;
+                    if (elem.requestFullscreen) await elem.requestFullscreen();
+                    else if (elem.webkitRequestFullscreen)
+                      await elem.webkitRequestFullscreen();
+                    else if (elem.mozRequestFullScreen)
+                      await elem.mozRequestFullScreen();
+                    else if (elem.msRequestFullscreen)
+                      await elem.msRequestFullscreen();
+                  }}
+                >
+                  Revin la examen
                 </button>
               </div>
             </div>
