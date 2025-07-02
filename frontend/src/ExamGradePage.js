@@ -65,18 +65,18 @@ function ExamGradePage() {
 
   return (
     <div className="container mt-5">
-      <h2 className="text-center text-light">Notează Examenul</h2>
+      <h2 className="text-center text-light">Grade Exam</h2>
       <div className="card p-4 mt-4">
         <h4>Student: {exam.Student?.name || "N/A"}</h4>
-        <h5 className="mt-3">Titlu: {exam.title}</h5>
+        <h5 className="mt-3">Title: {exam.title}</h5>
         <hr />
-        <h6>Răspuns:</h6>
+        <h6>Answer:</h6>
         <p className="border rounded p-3 bg-light">
           {exam.response || "Fără răspuns"}
         </p>
 
         <div className="form-group mt-4">
-          <label>Notă (1 - 10)</label>
+          <label>Grade (1 - 10)</label>
           <input
             type="number"
             step="0.01"
@@ -90,7 +90,7 @@ function ExamGradePage() {
         </div>
 
         <button onClick={handleSaveGrade} className="btn btn-success mt-3">
-          Salvează nota
+          Save grade
         </button>
       </div>
       <ToastContainer position="top-center" autoClose={2000} />

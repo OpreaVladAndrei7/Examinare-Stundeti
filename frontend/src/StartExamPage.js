@@ -316,15 +316,15 @@ function StartExamPage() {
   return (
     <div className="container mt-5 mb-5">
       <div className="card p-4">
-        <h2 className="text-center">Examen: {exam.title}</h2>
+        <h2 className="text-center">Exam: {exam.title}</h2>
         <h4 className="text-center text-danger mt-2">
-          Timp rămas: {formatTime(remainingTime)}
+          Remaining Time: {formatTime(remainingTime)}
         </h4>
 
         <hr />
 
         <div className="mt-4">
-          <h5>Cerință:</h5>
+          <h5>Requirement:</h5>
           <p className="bg-light border rounded p-3">{exam.requirement}</p>
         </div>
 
@@ -543,7 +543,7 @@ function StartExamPage() {
             </div>
 
             <div className="mb-3">
-              <h5>Variabile:</h5>
+              <h5>Variables:</h5>
               <pre
                 className="bg-dark text-warning p-3 rounded"
                 style={{ maxHeight: "200px", overflowY: "auto" }}
@@ -553,7 +553,7 @@ function StartExamPage() {
             </div>
 
             <div className="mb-3">
-              <h5>Rezultat Compilare:</h5>
+              <h5>Output:</h5>
               <pre
                 className="bg-dark text-light p-3 rounded"
                 style={{ maxHeight: "150px", overflowY: "auto" }}
@@ -618,7 +618,7 @@ function StartExamPage() {
             }
           }}
         >
-          Trimite Examen
+          Submit Exam
         </button>
       </div>
       {showExitModal && (

@@ -85,12 +85,10 @@ function EditRequirementPage() {
   return (
     <div className="container mt-5">
       <div className="card p-4">
-        <h2 className="mb-3">
-          Editează cerința: {decodeURIComponent(requirement)}
-        </h2>
+        <h2 className="mb-3">Edit exam: {decodeURIComponent(requirement)}</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label">Titlu</label>
+            <label className="form-label">Title</label>
             <input
               type="text"
               className="form-control"
@@ -102,7 +100,7 @@ function EditRequirementPage() {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Cerință</label>
+            <label className="form-label">Requirement</label>
             <textarea
               className="form-control"
               rows="3"
@@ -138,7 +136,7 @@ function EditRequirementPage() {
           </div>
 
           <button type="submit" className="btn btn-primary">
-            Salvează modificările
+            Save changes
           </button>
           {/* {message && (
             <p

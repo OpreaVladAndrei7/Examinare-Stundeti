@@ -74,11 +74,11 @@ function ManageExamsPage() {
       <div className="d-flex justify-content-end gap-2 mb-3">
         <button className="btn btn-success" onClick={handleExportToExcel}>
           <BsFiletypeXlsx className="me-1" style={{ marginBottom: "3px" }} />
-          Exportă XLS
+          Export XLS
         </button>
         <button className="btn btn-danger" onClick={handleDeleteAllExams}>
           <BsFillTrashFill className="me-1" style={{ marginBottom: "3px" }} />
-          Șterge toate examenele
+          Delete all exams
         </button>
       </div>
 
@@ -108,7 +108,7 @@ function ManageExamsPage() {
                     className="btn btn-sm btn-primary"
                     onClick={() => navigate(`/grade-exam/${exam.id}`)}
                   >
-                    Notează
+                    Grade
                   </button>
                 </td>
               </tr>

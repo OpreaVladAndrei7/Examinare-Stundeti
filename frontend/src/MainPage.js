@@ -110,6 +110,7 @@ function MainPage() {
                   <th>End Date</th>
                   <th>Status</th>
                   <th>Action</th>
+                  <th>Grade</th>
                 </tr>
               </thead>
               <tbody>
@@ -125,7 +126,7 @@ function MainPage() {
                           className="btn btn-success btn-sm"
                           onClick={async () => {
                             try {
-                              await navigator.clipboard.writeText(""); // 🧹 curăță clipboard-ul
+                              await navigator.clipboard.writeText("");
                             } catch (err) {
                               console.warn("Clipboard write failed:", err);
                             }
@@ -140,6 +141,7 @@ function MainPage() {
                         <span className="text-muted">Unavailable</span>
                       )}
                     </td>
+                    <td>{exam.grade !== null ? exam.grade : "-"}</td>
                   </tr>
                 ))}
               </tbody>

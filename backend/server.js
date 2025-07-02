@@ -4,7 +4,7 @@ const cors = require("cors");
 const express = require("express");
 const { Op } = require("sequelize");
 //const { Sequelize, DataTypes } = require("sequelize");
-const bcrypt = require("bcrypt"); // For password hashing
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { sequelize, Student, Teacher, Group, Exam } = require("./models");
 const { exec } = require("child_process");
@@ -16,7 +16,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Test the database connection
 (async () => {
   try {
     await sequelize.authenticate();
@@ -26,44 +25,53 @@ app.use(express.json());
   }
 })();
 
-//Modifing the password to be crypted in the database for the cases when it is insterted directly
-// Function to hash passwords for students
-// const updateStudentPasswords = async () => {
-//   const students = await Student.findAll();
-//   for (const student of students) {
-//     const hashedPassword = await bcrypt.hash(student.password, 10);
-//     await Student.update(
-//       { password: hashedPassword },
-//       { where: { id: student.id } }
-//     );
-//   }
-//   console.log("Student passwords updated successfully!");
-// };
+//HASHING PASSWORDS
+const isHashed = (password) => {
+  return (
+    typeof password === "string" &&
+    password.startsWith("$2") &&
+    password.length === 60
+  );
+};
 
-// // Function to hash passwords for teachers
-// const updateTeacherPasswords = async () => {
-//   const teachers = await Teacher.findAll();
-//   for (const teacher of teachers) {
-//     const hashedPassword = await bcrypt.hash(teacher.password, 10);
-//     await Teacher.update(
-//       { password: hashedPassword },
-//       { where: { id: teacher.id } }
-//     );
-//   }
-//   console.log("Teacher passwords updated successfully!");
-// };
+const updateStudentPasswords = async () => {
+  const students = await Student.findAll();
+  for (const student of students) {
+    if (!isHashed(student.password)) {
+      const hashedPassword = await bcrypt.hash(student.password, 10);
+      await Student.update(
+        { password: hashedPassword },
+        { where: { id: student.id } }
+      );
+    }
+  }
+  console.log("Student passwords updated successfully!");
+};
 
-// // Call both functions
-// const updatePasswords = async () => {
-//   await updateStudentPasswords();
-//   await updateTeacherPasswords();
-//   console.log("All passwords updated successfully!");
-// };
+const updateTeacherPasswords = async () => {
+  const teachers = await Teacher.findAll();
+  for (const teacher of teachers) {
+    if (!isHashed(teacher.password)) {
+      const hashedPassword = await bcrypt.hash(teacher.password, 10);
+      await Teacher.update(
+        { password: hashedPassword },
+        { where: { id: teacher.id } }
+      );
+    }
+  }
+  console.log("Teacher passwords updated successfully!");
+};
 
-// // Execute the update
-// updatePasswords().catch((err) => {
-//   console.error("Error updating passwords:", err);
-// });
+const updatePasswords = async () => {
+  await updateStudentPasswords();
+  await updateTeacherPasswords();
+  console.log("All passwords updated successfully!");
+};
+
+updatePasswords().catch((err) => {
+  console.error("Error updating passwords:", err);
+});
+
 const authenticateToken = (req, res, next) => {
   const token = req.header("Authorization");
 
@@ -77,19 +85,17 @@ const authenticateToken = (req, res, next) => {
       process.env.JWT_SECRET
     );
     req.user = decoded;
-    next(); // Continue to the next middleware
+    next();
   } catch (error) {
     return res.status(403).json({ error: "Invalid or expired token." });
   }
 };
-// Login endpoint
+
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
     let user, role;
-
-    // Check if the user is a student
     const student = await Student.findOne({ where: { email } });
     if (student) {
       const isPasswordValid = await bcrypt.compare(password, student.password);
@@ -99,7 +105,6 @@ app.post("/login", async (req, res) => {
       user = student;
       role = "student";
     } else {
-      // Check if the user is a teacher
       const teacher = await Teacher.findOne({ where: { email } });
       if (teacher) {
         const isPasswordValid = await bcrypt.compare(
@@ -116,11 +121,10 @@ app.post("/login", async (req, res) => {
       }
     }
 
-    // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, email: user.email, role }, // Payload
-      process.env.JWT_SECRET, // Secret key
-      { expiresIn: "2h" } // Token expiration
+      { id: user.id, email: user.email, role },
+      process.env.JWT_SECRET,
+      { expiresIn: "2h" }
     );
 
     return res.json({
@@ -206,7 +210,7 @@ app.get("/exams", authenticateToken, async (req, res) => {
     }
 
     if (user.role === "student") {
-      // Update status doar pentru examenele proprii
+      // Update status doar pentru examenele studentilor
       await Exam.update(
         { status: "ongoing" },
         {
@@ -243,7 +247,14 @@ app.get("/exams", authenticateToken, async (req, res) => {
 
       const exams = await Exam.findAll({
         where: { student_id: user.id },
-        attributes: ["id", "title", "start_date", "end_date", "status"],
+        attributes: [
+          "id",
+          "title",
+          "start_date",
+          "end_date",
+          "status",
+          "grade",
+        ],
         order: [["start_date", "ASC"]],
       });
 
@@ -290,7 +301,6 @@ app.post("/exams", authenticateToken, async (req, res) => {
   }
 
   try {
-    // 1. Găsește toți studenții din grupă, ordonați alfabetic
     const students = await Student.findAll({
       where: { group_id },
       order: [["name", "ASC"]],
@@ -300,15 +310,12 @@ app.post("/exams", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "No students in selected group." });
     }
 
-    // 2. Caută toate examenele EXISTENTE ale grupei
     const existingExams = await Exam.findAll({
       where: {
         group_id,
         teacher_id: teacherId,
       },
     });
-
-    // 3. Creează câte un examen nou pentru fiecare student
     const now = new Date();
     const status =
       now < new Date(start_date)
@@ -317,13 +324,12 @@ app.post("/exams", authenticateToken, async (req, res) => {
         ? "ongoing"
         : "closed";
 
-    // 4. Determină frecvența de suprascriere
     const nrSubiecteExistente =
       existingExams.length > 0
         ? new Set(existingExams.map((e) => e.requirement)).size
         : 0;
 
-    const frequency = nrSubiecteExistente + 1; // dacă 1 subiect → din 2 în 2
+    const frequency = nrSubiecteExistente + 1;
 
     const updatedExams = [];
 
@@ -331,13 +337,11 @@ app.post("/exams", authenticateToken, async (req, res) => {
       const student = students[i - 1];
 
       if (i % frequency === 0) {
-        // Caută dacă studentul are deja un examen
         const existingExam = existingExams.find(
           (e) => e.student_id === student.id
         );
 
         if (existingExam) {
-          // Update existing
           await Exam.update(
             {
               requirement,
@@ -350,7 +354,6 @@ app.post("/exams", authenticateToken, async (req, res) => {
           );
           updatedExams.push(existingExam.id);
         } else {
-          // Create new
           const newExam = await Exam.create({
             student_id: student.id,
             teacher_id: teacherId,
@@ -561,8 +564,8 @@ app.post("/debug/start", authenticateToken, (req, res) => {
 
 const cleanGdbOutput = (raw) =>
   raw
-    .replace(/\(gdb\)\s*/g, "") // elimină prompturile (gdb)
-    .replace(/\x1b\[[0-9;]*m/g, "") // elimină codurile ANSI de culoare
+    .replace(/\(gdb\)\s*/g, "")
+    .replace(/\x1b\[[0-9;]*m/g, "")
     .trim();
 
 app.post("/debug/cmd", async (req, res) => {
@@ -631,8 +634,8 @@ app.post("/compile", authenticateToken, async (req, res) => {
   const execCommand = `g++ ${filePath} -o ${filePath}.out && ${filePath}.out`;
 
   exec(execCommand, (error, stdout, stderr) => {
-    fs.unlinkSync(filePath); // cleanup .cpp
-    if (fs.existsSync(`${filePath}.out`)) fs.unlinkSync(`${filePath}.out`); // cleanup binary
+    fs.unlinkSync(filePath);
+    if (fs.existsSync(`${filePath}.out`)) fs.unlinkSync(`${filePath}.out`);
 
     if (error) {
       return res.json({ error: stderr || "Compilation error" });
@@ -657,7 +660,6 @@ app.post("/debug/clear", authenticateToken, (req, res) => {
   }
 });
 
-// Start the server
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
