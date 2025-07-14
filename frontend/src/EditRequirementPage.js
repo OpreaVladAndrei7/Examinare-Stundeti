@@ -22,6 +22,12 @@ function EditRequirementPage() {
   //   }, 2000);
   // };
 
+  const toDatetimeLocal = (dateStr) => {
+    const date = new Date(dateStr);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
   useEffect(() => {
     // Optionally: Fetch one exam with this requirement to prefill title/start/end
     const token = localStorage.getItem("token");
@@ -34,8 +40,8 @@ function EditRequirementPage() {
           setFormData((prev) => ({
             ...prev,
             title: data.title,
-            start_date: data.start_date.slice(0, 16),
-            end_date: data.end_date.slice(0, 16),
+            start_date: toDatetimeLocal(data.start_date),
+            end_date: toDatetimeLocal(data.end_date),
           }));
         }
       });

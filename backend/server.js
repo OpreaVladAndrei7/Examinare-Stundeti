@@ -521,6 +521,31 @@ app.put("/exams/:id/invalidate", authenticateToken, async (req, res) => {
   }
 });
 
+app.get(
+  "/exams/one-by-requirement/:requirement",
+  authenticateToken,
+  async (req, res) => {
+    const { requirement } = req.params;
+    if (req.user.role !== "teacher") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    try {
+      const exam = await Exam.findOne({
+        where: { requirement: requirement },
+      });
+
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+
+      res.json(exam);
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
 app.delete("/exams", authenticateToken, async (req, res) => {
   if (req.user.role !== "teacher") {
     return res.status(403).json({ error: "Access denied" });
@@ -653,6 +678,8 @@ app.post("/debug/clear", authenticateToken, (req, res) => {
     const base = path.join(__dirname, file);
     if (fs.existsSync(base)) fs.unlinkSync(base);
     if (fs.existsSync(`${base}.out`)) fs.unlinkSync(`${base}.out`);
+    //exec(`taskkill /F /IM "${base}.out"`, { stdio: "ignore" });
+    if (fs.existsSync(`${base}.out`)) fs.rmSync(`${base}.out`, { force: true });
     res.json({ message: "Files cleared" });
   } catch (err) {
     console.error("Error clearing debug files:", err);
