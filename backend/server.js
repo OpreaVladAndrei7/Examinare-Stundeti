@@ -272,7 +272,12 @@ app.get("/exams/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const exam = await Exam.findByPk(id);
+    const exam = await Exam.findByPk(id, {
+      include: {
+        model: Student,
+        attributes: ["name"],
+      },
+    });
 
     if (!exam) return res.status(404).json({ error: "Exam not found." });
 
